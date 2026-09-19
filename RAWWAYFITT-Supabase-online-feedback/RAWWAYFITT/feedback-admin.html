@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAWWAYFITT | Feedback Manager</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.admin{max-width:1000px;margin:auto;padding:60px 28px}
+.admin header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:35px}
+.admin-card{border:1px solid #333;padding:24px;margin:15px 0;background:#121212}
+.admin-card .meta{opacity:.65;font-size:14px}
+.admin-actions{display:flex;gap:10px;flex-wrap:wrap}
+.admin-actions button,.auth-form button{padding:11px 16px;border:1px solid #555;background:#0b0b0b;color:#fff;cursor:pointer}
+.admin-actions .approve{border-color:#fff}
+.admin-actions button:disabled,.auth-form button:disabled{opacity:.5;cursor:not-allowed}
+.empty{padding:30px;border:1px dashed #444;opacity:.7}
+.warning,.setup-box{padding:16px;border:1px solid #555;margin-bottom:25px}
+.auth-box{max-width:520px;border:1px solid #333;padding:25px;margin:25px 0;background:#121212}
+.auth-form{display:grid;gap:14px}
+.auth-form label{display:grid;gap:7px;font-weight:bold}
+.auth-form input{width:100%;padding:13px;background:#0b0b0b;border:1px solid #444;color:#fff;font:inherit}
+.auth-actions{display:flex;gap:10px;flex-wrap:wrap}
+.status{min-height:24px}
+.small{font-size:13px;opacity:.75}
+.code{display:block;padding:12px;background:#080808;border:1px solid #333;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.hidden{display:none!important}
+@media(max-width:700px){.admin header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="admin">
+<header>
+  <div><div class="logo">RAWWAYFITT</div><h1>Feedback Manager</h1></div>
+  <a class="btn" href="index.html">View Website</a>
+</header>
+
+<div id="authSection">
+  <div class="warning">
+    <strong>Admin access:</strong> sign in with your Supabase email/password account.
+    Only a user added to the <code>admin_users</code> table can approve or reject feedback.
+  </div>
+
+  <div class="auth-box">
+    <h2>Admin Login</h2>
+    <form id="authForm" class="auth-form">
+      <label>Email<input id="adminEmail" type="email" required autocomplete="email" placeholder="you@example.com"></label>
+      <label>Password<input id="adminPassword" type="password" required autocomplete="current-password" placeholder="Your password"></label>
+      <div class="auth-actions">
+        <button type="submit" id="loginBtn">SIGN IN</button>
+        <button type="button" id="signupBtn">CREATE ACCOUNT</button>
+      </div>
+      <p id="authMessage" class="status"></p>
+    </form>
+  </div>
+</div>
+
+<div id="notAdminSection" class="setup-box hidden">
+  <h2>One-time admin activation</h2>
+  <p>Your Supabase account is signed in, but it has not been added as a RAWWAYFITT admin yet.</p>
+  <p class="small">Copy the SQL below into Supabase → SQL Editor → New query, run it, then click “Check admin access”.</p>
+  <code id="adminSql" class="code"></code>
+  <button id="checkAdminBtn" class="btn" type="button">CHECK ADMIN ACCESS</button>
+  <button id="signOutBtn1" class="btn" type="button">SIGN OUT</button>
+  <p id="notAdminMessage" class="status"></p>
+</div>
+
+<div id="dashboardSection" class="hidden">
+  <div class="warning">
+    <strong>Online feedback manager:</strong> submissions from your clients are stored in Supabase.
+    Approving a submission makes it visible on the public RAWWAYFITT website.
+  </div>
+  <div style="display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;align-items:center;margin-bottom:25px">
+    <div><strong id="signedInEmail"></strong><div class="small">Admin session active</div></div>
+    <button id="signOutBtn" class="btn" type="button">SIGN OUT</button>
+  </div>
+
+  <h2>Pending Feedback</h2>
+  <div id="pending"></div>
+
+  <h2>Published Feedback</h2>
+  <div id="published"></div>
+
+  <h2>Rejected Feedback</h2>
+  <div id="rejected"></div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+const supabaseClient = window.supabase.createClient(
+  window.RAWWAYFITT_SUPABASE_URL,
+  window.RAWWAYFITT_SUPABASE_PUBLISHABLE_KEY
+);
+
+const authSection = document.getElementById('authSection');
+const notAdminSection = document.getElementById('notAdminSection');
+const dashboardSection = document.getElementById('dashboardSection');
+const authMessage = document.getElementById('authMessage');
+const notAdminMessage = document.getElementById('notAdminMessage');
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[c]));
+}
+
+function stars(rating) {
+  const n = Number(rating) || 0;
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+function showOnly(section) {
+  [authSection, notAdminSection, dashboardSection].forEach(x => x.classList.add('hidden'));
+  section.classList.remove('hidden');
+}
+
+async function checkAdmin(user) {
+  const { data, error } = await supabaseClient
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    authMessage.textContent = 'Could not verify admin access. Make sure the setup SQL has been run.';
+    showOnly(authSection);
+    return false;
+  }
+
+  if (!data) {
+    document.getElementById('adminSql').textContent =
+      "insert into public.admin_users (user_id) values ('" + user.id + "');";
+    showOnly(notAdminSection);
+    return false;
+  }
+
+  document.getElementById('signedInEmail').textContent = user.email || 'Admin';
+  showOnly(dashboardSection);
+  await renderAdminFeedback();
+  return true;
+}
+
+async function renderAdminFeedback() {
+  const { data, error } = await supabaseClient
+    .from('feedback')
+    .select('id,name,rating,feedback,permission,status,created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    document.getElementById('pending').innerHTML =
+      '<div class="empty">Could not load feedback. Check your RLS policies.</div>';
+    return;
+  }
+
+  const make = (item, actions) => `
+    <div class="admin-card">
+      <h3>${esc(item.name)} <span>${stars(item.rating)}</span></h3>
+      <div class="meta">${new Date(item.created_at).toLocaleString()}</div>
+      <p>${esc(item.feedback)}</p>
+      ${actions ? `
+        <div class="admin-actions">
+          <button class="approve" onclick="updateStatus('${item.id}','approved')">Approve</button>
+          <button onclick="updateStatus('${item.id}','rejected')">Reject</button>
+        </div>` : ''}
+    </div>`;
+
+  const pending = data.filter(x => x.status === 'pending');
+  const approved = data.filter(x => x.status === 'approved');
+  const rejected = data.filter(x => x.status === 'rejected');
+
+  document.getElementById('pending').innerHTML =
+    pending.length ? pending.map(x => make(x, true)).join('') : '<div class="empty">No pending submissions.</div>';
+
+  document.getElementById('published').innerHTML =
+    approved.length ? approved.map(x => make(x, false)).join('') : '<div class="empty">No published feedback yet.</div>';
+
+  document.getElementById('rejected').innerHTML =
+    rejected.length ? rejected.map(x => make(x, false)).join('') : '<div class="empty">No rejected feedback.</div>';
+}
+
+async function updateStatus(id, status) {
+  const { error } = await supabaseClient
+    .from('feedback')
+    .update({ status })
+    .eq('id', id);
+
+  if (error) {
+    alert('Could not update this feedback: ' + error.message);
+    return;
+  }
+
+  await renderAdminFeedback();
+}
+
+document.getElementById('authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  authMessage.textContent = 'Signing in...';
+
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    authMessage.textContent = error.message;
+    return;
+  }
+
+  authMessage.textContent = '';
+  await checkAdmin(data.user);
+});
+
+document.getElementById('signupBtn').addEventListener('click', async () => {
+  authMessage.textContent = 'Creating account...';
+
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+
+  if (!email || password.length < 6) {
+    authMessage.textContent = 'Enter an email and a password with at least 6 characters.';
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+  if (error) {
+    authMessage.textContent = error.message;
+    return;
+  }
+
+  if (data.session && data.user) {
+    authMessage.textContent = '';
+    await checkAdmin(data.user);
+  } else {
+    authMessage.textContent =
+      'Account created. If email confirmation is enabled, confirm your email, then sign in here.';
+  }
+});
+
+document.getElementById('checkAdminBtn').addEventListener('click', async () => {
+  notAdminMessage.textContent = 'Checking...';
+  const { data } = await supabaseClient.auth.getUser();
+  if (!data.user) {
+    showOnly(authSection);
+    return;
+  }
+  const ok = await checkAdmin(data.user);
+  notAdminMessage.textContent = ok ? '' : 'If you just ran the SQL, click again.';
+});
+
+async function signOut() {
+  await supabaseClient.auth.signOut();
+  showOnly(authSection);
+  authMessage.textContent = 'Signed out.';
+}
+
+document.getElementById('signOutBtn').addEventListener('click', signOut);
+document.getElementById('signOutBtn1').addEventListener('click', signOut);
+
+(async function init() {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) {
+    showOnly(authSection);
+    return;
+  }
+  await checkAdmin(data.session.user);
+})();
+</script>
+</body>
+</html>
