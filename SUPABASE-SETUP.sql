@@ -1,4 +1,4 @@
--- RAWWAYFITT Supabase setup
+-- RAWWAYFIT Supabase setup
 -- Run this AFTER your existing feedback table SQL.
 -- It is safe to run repeatedly.
 
