@@ -1,35 +1,29 @@
-/* =========================================
-   MOBILE NAVIGATION
-   ========================================= */
+/* =====================================================
+   MOBILE MENU
+===================================================== */
 
 const menuToggle = document.getElementById("menuToggle");
 
 const mobileMenu = document.getElementById("mobileMenu");
 
 if (menuToggle && mobileMenu) {
-  /*
-   * Open / close hamburger menu
-   */
+  menuToggle.addEventListener("click", function () {
+    const isOpen = mobileMenu.classList.toggle("open");
 
-  menuToggle.addEventListener("click", () => {
-    const open = mobileMenu.classList.toggle("open");
+    menuToggle.classList.toggle("active", isOpen);
 
-    menuToggle.classList.toggle("active", open);
-
-    menuToggle.setAttribute("aria-expanded", String(open));
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
 
     menuToggle.setAttribute(
       "aria-label",
-      open ? "Close navigation menu" : "Open navigation menu",
+      isOpen ? "Close navigation menu" : "Open navigation menu",
     );
   });
 
-  /*
-   * Close menu after clicking a link
-   */
+  /* CLOSE MENU WHEN LINK IS CLICKED */
 
-  mobileMenu.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
+  mobileMenu.querySelectorAll("a").forEach(function (link) {
+    link.addEventListener("click", function () {
       mobileMenu.classList.remove("open");
 
       menuToggle.classList.remove("active");
@@ -41,73 +35,328 @@ if (menuToggle && mobileMenu) {
   });
 }
 
-/* =========================================
-   SUPABASE
-   ========================================= */
+/* =====================================================
+   CERTIFICATIONS CAROUSEL
+===================================================== */
 
-const supabaseClient = window.supabase.createClient(
-  window.RAWWAYFITT_SUPABASE_URL,
-  window.RAWWAYFITT_SUPABASE_PUBLISHABLE_KEY,
-);
+const certificateSlides = document.querySelectorAll(".certificate-slide");
 
-/* =========================================
-   SECURITY / HTML ESCAPING
-   ========================================= */
+const certificatePrevious = document.getElementById("certificatePrevious");
 
-function escapeHTML(value) {
-  return String(value).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
-      })[c],
-  );
-}
+const certificateNext = document.getElementById("certificateNext");
 
-/* =========================================
-   STAR RATING
-   ========================================= */
+const certificateCounter = document.getElementById("certificateCounter");
 
-function stars(rating) {
-  const n = Number(rating) || 0;
+let certificateCurrent = 0;
 
-  return "★".repeat(n) + "☆".repeat(5 - n);
-}
+let certificateAutoSlide;
 
-/* =========================================
-   DISPLAY APPROVED FEEDBACK
-   ========================================= */
+/* SHOW CERTIFICATE */
 
-async function renderPublishedFeedback() {
-  const box = document.getElementById("publishedFeedback");
-
-  if (!box) {
+function showCertificate(index) {
+  if (!certificateSlides.length) {
     return;
   }
 
-  box.innerHTML =
-    '<div class="empty-feedback">' + "Loading client feedback..." + "</div>";
+  if (index < 0) {
+    certificateCurrent = certificateSlides.length - 1;
+  } else if (index >= certificateSlides.length) {
+    certificateCurrent = 0;
+  } else {
+    certificateCurrent = index;
+  }
 
-  const { data, error } = await supabaseClient
+  certificateSlides.forEach(function (slide, i) {
+    slide.classList.toggle("active", i === certificateCurrent);
+  });
 
+  if (certificateCounter) {
+    certificateCounter.textContent = `${certificateCurrent + 1} / ${certificateSlides.length}`;
+  }
+}
+
+/* NEXT */
+
+if (certificateNext) {
+  certificateNext.addEventListener("click", function () {
+    showCertificate(certificateCurrent + 1);
+
+    resetCertificateAutoSlide();
+  });
+}
+
+/* PREVIOUS */
+
+if (certificatePrevious) {
+  certificatePrevious.addEventListener("click", function () {
+    showCertificate(certificateCurrent - 1);
+
+    resetCertificateAutoSlide();
+  });
+}
+
+/* START */
+
+showCertificate(0);
+
+/* AUTO CHANGE EVERY 3 SECONDS */
+
+function startCertificateAutoSlide() {
+  certificateAutoSlide = setInterval(function () {
+    showCertificate(certificateCurrent + 1);
+  }, 3000);
+}
+
+/* RESET AUTO SLIDE */
+
+function resetCertificateAutoSlide() {
+  clearInterval(certificateAutoSlide);
+
+  startCertificateAutoSlide();
+}
+
+startCertificateAutoSlide();
+
+/* =====================================================
+   BEFORE & AFTER CAROUSEL
+===================================================== */
+
+const baSlides = document.querySelectorAll(".ba-slide");
+
+const baPrevious = document.getElementById("baPrevious");
+
+const baNext = document.getElementById("baNext");
+
+const baCounter = document.getElementById("baCounter");
+
+let baCurrent = 0;
+
+let baAutoSlide;
+
+/* SHOW BEFORE / AFTER */
+
+function showBeforeAfter(index) {
+  if (!baSlides.length) {
+    return;
+  }
+
+  if (index < 0) {
+    baCurrent = baSlides.length - 1;
+  } else if (index >= baSlides.length) {
+    baCurrent = 0;
+  } else {
+    baCurrent = index;
+  }
+
+  baSlides.forEach(function (slide, i) {
+    slide.classList.toggle("active", i === baCurrent);
+  });
+
+  if (baCounter) {
+    baCounter.textContent = `${baCurrent + 1} / ${baSlides.length}`;
+  }
+}
+
+/* NEXT */
+
+if (baNext) {
+  baNext.addEventListener("click", function () {
+    showBeforeAfter(baCurrent + 1);
+
+    resetBAAutoSlide();
+  });
+}
+
+/* PREVIOUS */
+
+if (baPrevious) {
+  baPrevious.addEventListener("click", function () {
+    showBeforeAfter(baCurrent - 1);
+
+    resetBAAutoSlide();
+  });
+}
+
+/* START */
+
+showBeforeAfter(0);
+
+/* AUTO CHANGE */
+
+function startBAAutoSlide() {
+  baAutoSlide = setInterval(function () {
+    showBeforeAfter(baCurrent + 1);
+  }, 3000);
+}
+
+/* RESET */
+
+function resetBAAutoSlide() {
+  clearInterval(baAutoSlide);
+
+  startBAAutoSlide();
+}
+
+startBAAutoSlide();
+
+/* =====================================================
+   MY JOURNEY CAROUSEL
+===================================================== */
+
+const journeySlides = document.querySelectorAll(".journey-slide");
+
+const journeyPrevious = document.getElementById("journeyPrevious");
+
+const journeyNext = document.getElementById("journeyNext");
+
+const journeyCounter = document.getElementById("journeyCounter");
+
+let journeyCurrent = 0;
+
+let journeyAutoSlide;
+
+/* SHOW JOURNEY */
+
+function showJourney(index) {
+  if (!journeySlides.length) {
+    return;
+  }
+
+  if (index < 0) {
+    journeyCurrent = journeySlides.length - 1;
+  } else if (index >= journeySlides.length) {
+    journeyCurrent = 0;
+  } else {
+    journeyCurrent = index;
+  }
+
+  journeySlides.forEach(function (slide, i) {
+    slide.classList.toggle("active", i === journeyCurrent);
+  });
+
+  if (journeyCounter) {
+    journeyCounter.textContent = `${journeyCurrent + 1} / ${journeySlides.length}`;
+  }
+}
+
+/* NEXT */
+
+if (journeyNext) {
+  journeyNext.addEventListener("click", function () {
+    showJourney(journeyCurrent + 1);
+
+    resetJourneyAutoSlide();
+  });
+}
+
+/* PREVIOUS */
+
+if (journeyPrevious) {
+  journeyPrevious.addEventListener("click", function () {
+    showJourney(journeyCurrent - 1);
+
+    resetJourneyAutoSlide();
+  });
+}
+
+/* START */
+
+showJourney(0);
+
+/* AUTO CHANGE EVERY 3 SECONDS */
+
+function startJourneyAutoSlide() {
+  journeyAutoSlide = setInterval(function () {
+    showJourney(journeyCurrent + 1);
+  }, 3000);
+}
+
+/* RESET */
+
+function resetJourneyAutoSlide() {
+  clearInterval(journeyAutoSlide);
+
+  startJourneyAutoSlide();
+}
+
+startJourneyAutoSlide();
+
+/* =====================================================
+   SUPABASE FEEDBACK
+===================================================== */
+
+let supabaseClient = null;
+
+if (
+  window.supabase &&
+  window.RAWWAYFITT_SUPABASE_URL &&
+  window.RAWWAYFITT_SUPABASE_PUBLISHABLE_KEY
+) {
+  supabaseClient = window.supabase.createClient(
+    window.RAWWAYFITT_SUPABASE_URL,
+    window.RAWWAYFITT_SUPABASE_PUBLISHABLE_KEY,
+  );
+}
+
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, function (character) {
+    return {
+      "&": "&amp;",
+
+      "<": "&lt;",
+
+      ">": "&gt;",
+
+      '"': "&quot;",
+
+      "'": "&#039;",
+    }[character];
+  });
+}
+
+/* =====================================================
+   STAR RATING
+===================================================== */
+
+function getStars(rating) {
+  const number = Number(rating) || 0;
+
+  return "★".repeat(number) + "☆".repeat(5 - number);
+}
+
+/* =====================================================
+   LOAD APPROVED FEEDBACK
+===================================================== */
+
+async function loadFeedback() {
+  const container = document.getElementById("publishedFeedback");
+
+  if (!container) {
+    return;
+  }
+
+  if (!supabaseClient) {
+    container.innerHTML = "";
+
+    return;
+  }
+
+  const result = await supabaseClient
     .from("feedback")
-
     .select("id,name,rating,feedback,created_at")
-
     .eq("status", "approved")
-
     .order("created_at", {
       ascending: false,
     });
 
-  if (error) {
-    console.error("Could not load feedback:", error);
+  if (result.error) {
+    console.error(result.error);
 
-    box.innerHTML =
+    container.innerHTML =
       '<div class="empty-feedback">' +
       "Client feedback is temporarily unavailable." +
       "</div>";
@@ -115,8 +364,8 @@ async function renderPublishedFeedback() {
     return;
   }
 
-  if (!data || !data.length) {
-    box.innerHTML =
+  if (!result.data || result.data.length === 0) {
+    container.innerHTML =
       '<div class="empty-feedback">' +
       "No client feedback has been published yet." +
       "</div>";
@@ -124,43 +373,48 @@ async function renderPublishedFeedback() {
     return;
   }
 
-  box.innerHTML = data
-    .map(
-      (item) => `
+  container.innerHTML = result.data
+    .map(function (item) {
+      return `
 
-      <article class="testimonial">
+            <article class="testimonial">
 
-        <div
-          class="rating"
-          aria-label="${escapeHTML(item.rating)} out of 5 stars"
-        >
-          ${stars(item.rating)}
-        </div>
+              <div class="rating">
 
-        <p>
-          “${escapeHTML(item.feedback)}”
-        </p>
+                ${getStars(item.rating)}
 
-        <strong>
-          — ${escapeHTML(item.name)}
-        </strong>
+              </div>
 
-      </article>
+              <p>
 
-    `,
-    )
+                “${escapeHTML(item.feedback)}”
+
+              </p>
+
+              <strong>
+
+                — ${escapeHTML(item.name)}
+
+              </strong>
+
+            </article>
+
+          `;
+    })
     .join("");
 }
 
-/* =========================================
+/* =====================================================
    FEEDBACK FORM
-   ========================================= */
+===================================================== */
 
 const feedbackForm = document.getElementById("feedbackForm");
 
 if (feedbackForm) {
-  feedbackForm.addEventListener("submit", async function (e) {
-    e.preventDefault();
+  feedbackForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const message = document.getElementById("formMessage");
 
     const submitButton = feedbackForm.querySelector('button[type="submit"]');
 
@@ -172,13 +426,9 @@ if (feedbackForm) {
 
     const permission = document.getElementById("permission").checked;
 
-    const message = document.getElementById("formMessage");
-
     message.textContent = "";
 
-    /*
-     * Check fields
-     */
+    /* VALIDATION */
 
     if (!name || !rating || !feedback) {
       message.textContent = "Please complete all fields.";
@@ -186,20 +436,12 @@ if (feedbackForm) {
       return;
     }
 
-    /*
-     * Permission required
-     */
-
     if (!permission) {
       message.textContent =
-        "Please give permission before submitting feedback for publication.";
+        "Please give permission before submitting your feedback.";
 
       return;
     }
-
-    /*
-     * Character limits
-     */
 
     if (name.length > 100 || feedback.length > 2000) {
       message.textContent =
@@ -208,60 +450,42 @@ if (feedbackForm) {
       return;
     }
 
-    /*
-     * Disable submit button
-     */
+    if (!supabaseClient) {
+      message.textContent = "Feedback system is not configured yet.";
+
+      return;
+    }
 
     submitButton.disabled = true;
 
     submitButton.textContent = "SUBMITTING...";
 
-    /*
-     * Submit to Supabase
-     */
+    const result = await supabaseClient.from("feedback").insert([
+      {
+        name: name,
 
-    const { error } = await supabaseClient
+        rating: rating,
 
-      .from("feedback")
+        feedback: feedback,
 
-      .insert([
-        {
-          name: name,
+        permission: true,
 
-          rating: rating,
-
-          feedback: feedback,
-
-          permission: true,
-
-          status: "pending",
-        },
-      ]);
-
-    /*
-     * Re-enable button
-     */
+        status: "pending",
+      },
+    ]);
 
     submitButton.disabled = false;
 
     submitButton.textContent = "SUBMIT FEEDBACK";
 
-    /*
-     * Error
-     */
-
-    if (error) {
-      console.error("Feedback submission failed:", error);
+    if (result.error) {
+      console.error(result.error);
 
       message.textContent =
         "We could not submit your feedback right now. Please try again.";
 
       return;
     }
-
-    /*
-     * Success
-     */
 
     feedbackForm.reset();
 
@@ -270,8 +494,8 @@ if (feedbackForm) {
   });
 }
 
-/* =========================================
+/* =====================================================
    LOAD FEEDBACK
-   ========================================= */
+===================================================== */
 
-renderPublishedFeedback();
+loadFeedback();
