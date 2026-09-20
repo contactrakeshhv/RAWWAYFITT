@@ -289,12 +289,12 @@ let supabaseClient = null;
 
 if (
   window.supabase &&
-  window.RAWWAYFITT_SUPABASE_URL &&
-  window.RAWWAYFITT_SUPABASE_PUBLISHABLE_KEY
+  window.RAWWAYFIT_SUPABASE_URL &&
+  window.RAWWAYFIT_SUPABASE_PUBLISHABLE_KEY
 ) {
   supabaseClient = window.supabase.createClient(
-    window.RAWWAYFITT_SUPABASE_URL,
-    window.RAWWAYFITT_SUPABASE_PUBLISHABLE_KEY,
+    window.RAWWAYFIT_SUPABASE_URL,
+    window.RAWWAYFIT_SUPABASE_PUBLISHABLE_KEY,
   );
 }
 
